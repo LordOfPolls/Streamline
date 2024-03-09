@@ -1,0 +1,60 @@
+[streamline]
+source_directory = "z:\\Movies"
+recursive = true  # Recursively search for files in source directory
+max_depth = 4  # Maximum depth to search for files in source directory
+file_extensions = ["mp4", "avi", "mkv", "mov", "wmv", "flv", "webm", "m4v", "3gp", "mpg", "mpeg"]
+
+[ffmpeg]
+ffmpeg_path = "ffmpeg"
+ffprobe_path = "ffprobe"
+threads = 0
+log_level = "info"  # FFmpeg logging level (quiet, panic, fatal, error, warning, info, verbose, debug, trace)
+
+[output]
+temporary_suffix = "_temp"  # Suffix to append to file name during encoding
+temp_directory = ""  # Temporary directory for encoded files
+output_directory = ""  # Output directory for encoded files
+output_extension = ".mkv"  # Output file extension
+output_format = "matroska"  # Output container format
+delete_source = false  # Delete source file after successful encoding
+
+[video_targets]
+codec = ["h265", "h265"]
+max_bitrate = 0
+crf = -1
+ffmpeg_preset = "medium"
+max_width = 0
+max_height = 0
+min_width = 0
+min_height = 0
+max_fps = 0
+filters = ""
+force_filter = false
+pix_fmt = "yuv420p"  # Output pixel format
+tune = "film"  # Tuning options (film, animation, grain, stillimage, fastdecode, zerolatency)
+x265_params = ""  # Additional x265 parameters
+
+[audio_targets]
+codec = ["aac", "aac"]
+language = ["eng", "jpn"]
+default_language = "eng"
+channel_bitrate = 0
+variable_bitrate = 0
+sample_rate = []
+ffmpeg_profile = ""
+filter = ""
+force_filter = false
+channels = 2  # Number of audio channels
+aac_profile = "aac_low"  # AAC profile (aac_low, aac_he, aac_he_v2)
+
+[subtitles]
+codec = ["srt", "ass"]  # List of acceptable subtitle codecs
+language = ["eng", "jpn"]  # List of acceptable subtitle languages
+default_language = "eng"  # Default subtitle language
+copy_subtitles = false  # Copy existing subtitles without re-encoding
+force_subtitles = false  # Force including subtitles even if none exist
+
+[filters]
+deinterlace = false  # Enable deinterlacing filter
+deblock = 0  # Deblock filter strength (0-100)
+denoise = 0  # Denoise filter strength (0-100)
