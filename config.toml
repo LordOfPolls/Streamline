@@ -1,5 +1,6 @@
 [streamline]
-source_directory = "z:\\"
+source_directory = "D:\\ramdisk_cache"
+output_directory = "D:\\ramdisk_cache\\Output"  # Output directory for encoded files, blank to use the same directory as the file
 exclude_directories = ["injest", "plexdata"]
 recursive = true  # Recursively search for files in source directory
 max_depth = 5  # Maximum depth to search for files in source directory
@@ -11,7 +12,6 @@ replace_if_smaller = false  # Replace source file if output is smaller
 always_replace = false  # Always replace source file
 temporary_suffix = "_temp"  # Suffix to append to file name during encoding
 temp_directory = ""  # Temporary directory for encoded files
-output_directory = ""  # Output directory for encoded files, blank to use the same directory as the file
 
 [ffmpeg]
 ffmpeg_path = "ffmpeg"

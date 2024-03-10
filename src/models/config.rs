@@ -62,6 +62,15 @@ impl Config {
             println!("Error: temporary_suffix cannot be empty");
             failed = true;
         }
+
+        if !Path::new(&self.streamline.temp_directory).exists() {
+            fs::create_dir_all(&self.streamline.temp_directory).unwrap();
+        }
+
+        if !Path::new(&self.streamline.output_directory).exists() {
+            fs::create_dir_all(&self.streamline.output_directory).unwrap();
+        }
+
         return failed;
     }
 }
