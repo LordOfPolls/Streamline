@@ -94,7 +94,7 @@ pub struct AudioTargets {
     pub variable_bitrate: u32,
     pub sample_rate: Vec<u32>,
     pub ffmpeg_profile: String,
-    pub filter: String,
+    pub filters: String,
     pub force_filter: bool,
     pub channels: u32,
     pub aac_profile: String,
