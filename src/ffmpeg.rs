@@ -162,7 +162,9 @@ pub fn process_file(input_file: &MediaFile) -> Result<(), String> {
     apply_video_arguments(&video_streams[0], &mut command);
     apply_aspect_ratio_corrections(&video_streams[0], &mut filters);
 
-    apply_audio_arguments(audio_streams[0], &mut command);
+    for stream in audio_streams {
+        apply_audio_arguments(stream, &mut command);
+    }
 
     if filters.len() > 0 {
         command.arg("-vf").arg(filters.join(","));
