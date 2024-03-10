@@ -1,8 +1,8 @@
+use crate::utils;
+use once_cell::sync::Lazy;
+use serde::Deserialize;
 use std::fs;
 use std::path::Path;
-use serde::Deserialize;
-use once_cell::sync::Lazy;
-use crate::utils;
 
 pub static CONFIG: Lazy<Config> = Lazy::new(|| load_config());
 
@@ -21,7 +21,7 @@ fn load_config() -> Config {
         Ok(config) => {
             spinner.finish_with_message("✅ Config loaded!");
             config
-        },
+        }
         Err(e) => {
             println!("Error parsing config file: {}", e);
             std::process::exit(1);
@@ -47,6 +47,7 @@ pub struct StreamLine {
     pub max_depth: u32,
     pub file_extensions: Vec<String>,
     pub dry_run: bool,
+    pub debug: bool,
 }
 
 #[derive(Debug, Deserialize)]
@@ -75,9 +76,7 @@ pub struct VideoTargets {
     pub ffmpeg_preset: String,
     pub max_width: u32,
     pub max_height: u32,
-    pub min_width: u32,
-    pub min_height: u32,
-    pub max_fps: u32,
+    pub max_fps: f64,
     pub filters: String,
     pub force_filter: bool,
     pub pix_fmt: String,

@@ -1,9 +1,10 @@
 [streamline]
-source_directory = "z:\\Movies"
+source_directory = "z:\\"
 recursive = true  # Recursively search for files in source directory
-max_depth = 4  # Maximum depth to search for files in source directory
+max_depth = 1  # Maximum depth to search for files in source directory
 file_extensions = ["mp4", "avi", "mkv", "mov", "wmv", "flv", "webm", "m4v", "3gp", "mpg", "mpeg"]
 dry_run = false  # Simulate encoding without modifying files
+debug = false  # Enable debug mode
 
 [ffmpeg]
 ffmpeg_path = "ffmpeg"
@@ -15,19 +16,17 @@ log_level = "info"  # FFmpeg logging level (quiet, panic, fatal, error, warning,
 temporary_suffix = "_temp"  # Suffix to append to file name during encoding
 temp_directory = ""  # Temporary directory for encoded files
 output_directory = ""  # Output directory for encoded files
-output_extension = ".mkv"  # Output file extension
+output_extension = "mkv"  # Output file extension
 output_format = "matroska"  # Output container format
 delete_source = false  # Delete source file after successful encoding
 
 [video_targets]
-codec = ["h265", "h265"]
+codec = ["hevc", "h264", "h265"]
 max_bitrate = 0
 crf = -1
 ffmpeg_preset = "medium"
 max_width = 0
 max_height = 0
-min_width = 0
-min_height = 0
 max_fps = 0
 filters = ""
 force_filter = false
@@ -36,7 +35,7 @@ tune = "film"  # Tuning options (film, animation, grain, stillimage, fastdecode,
 x265_params = ""  # Additional x265 parameters
 
 [audio_targets]
-codec = ["aac", "aac"]
+codec = ["aac", "ac3", "truehd", "dts"]
 language = ["eng", "jpn"]
 default_language = "eng"
 channel_bitrate = 0
