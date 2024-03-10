@@ -91,6 +91,27 @@ impl Config {
             _ => self.ffmpeg.threads,
         }
     }
+
+    pub fn display(&self) {
+        println!();
+        println!("   StreamLine Configuration:");
+        println!("     Source Directory: {}"   , self.streamline.source_directory);
+        println!("     Output Directory: {}"   , self.streamline.output_directory);
+        println!("     File Extensions: {:?}"   , self.streamline.file_extensions);
+        println!("     Output Format: {}"   , self.streamline.output_format);
+
+        println!("\n   FFmpeg Configuration:"   );
+        println!("     Threads: {}"   , self.get_threads());
+        println!("     Video Codec: {:?}"   , self.video_targets.codec);
+        println!("     FFmpeg Preset: {}"   , self.video_targets.ffmpeg_preset);
+
+        println!("     Audio Codec: {:?}"   , self.audio_targets.codec);
+        println!("     Language: {:?}"   , self.audio_targets.language);
+        println!("     Audio Default Language: {}"   , self.audio_targets.default_language);
+
+        println!("     Language: {:?}"   , self.subtitles.language);
+        println!("     Subtitle Default Language: {}"   , self.subtitles.default_language);
+    }
 }
 
 #[derive(Debug, Deserialize)]

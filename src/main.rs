@@ -18,6 +18,7 @@ fn main() {
     let path = Path::new(&CONFIG.streamline.source_directory);
 
     sanity_check(path);
+    CONFIG.display();
 
     let collection_spinner = utils::create_spinner(false);
     let files = collect_files_with_extensions(
