@@ -43,5 +43,5 @@ pub fn get_file_info(file: &DirEntry) -> Result<FFProbeOutput, String> {
 }
 
 fn parse_ffprobe_output(output: &str) -> Result<FFProbeOutput, String> {
-    serde_json::from_str(output).map_err(|e| e.to_string())
+    serde_json::from_str(output).map_err(|e| format!("Error parsing ffprobe output: {}\nOutput: {}", e, output))
 }

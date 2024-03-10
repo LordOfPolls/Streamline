@@ -2,15 +2,15 @@ use std::fs;
 use std::fs::DirEntry;
 use std::io;
 use std::path::Path;
-use std::process::Command;
 
 use indicatif::ProgressBar;
 
+use crate::models::file::MediaFile;
 use models::config::CONFIG;
 
+mod ffmpeg;
 mod ffprobe;
 mod models;
-mod ffmpeg;
 mod utils;
 
 fn main() {
@@ -20,49 +20,165 @@ fn main() {
     sanity_check(path);
 
     let collection_spinner = utils::create_spinner(true);
-    let files = collect_files_with_extensions(path, extensions, CONFIG.streamline.recursive, 0, CONFIG.streamline.max_depth, &collection_spinner).unwrap();
+    let files = collect_files_with_extensions(
+        path,
+        extensions,
+        CONFIG.streamline.recursive,
+        0,
+        CONFIG.streamline.max_depth,
+        &collection_spinner,
+    )
+    .unwrap();
     collection_spinner.finish_with_message(format!("✅ Files collected! Found: {}", files.len()));
 
-    check_files(files);
+    let to_process = check_files(files);
+
+    let processing_pb = utils::create_progress_bar(to_process.len() as u64, true, 500);
+    processing_pb.set_message("Processing files...");
+    for file in to_process {
+        processing_pb.set_message(format!("Processing: {}", file.path.path().display()));
+        processing_pb.tick();
+        match ffmpeg::process_file(&file) {
+            Ok(_) => processing_pb.inc(1),
+            Err(e) => {
+                println!("Error processing file: {}", e)
+            }
+        }
+    }
+    utils::set_pb_finish_message(&processing_pb, "✅ Files processed!".to_string());
 }
 
+fn debug_print_ln(s: &str) {
+    if CONFIG.streamline.debug {
+        println!("{}", s);
+    }
+}
 
-fn check_files(files: Vec<DirEntry>) {
-    let pb = utils::create_progress_bar(files.len() as u64);
+fn _check_file(file: MediaFile, to_process: &mut Vec<MediaFile>) {
+    let video_streams = file
+        .info
+        .streams
+        .iter()
+        .filter(|s| s.codec_type == "video")
+        .collect::<Vec<_>>();
+    let audio_streams = file
+        .info
+        .streams
+        .iter()
+        .filter(|s| s.codec_type == "audio")
+        .collect::<Vec<_>>();
 
+    for stream in video_streams {
+        if !CONFIG.video_targets.codec.is_empty()
+            && !CONFIG.video_targets.codec.contains(&stream.codec_name)
+        {
+            debug_print_ln(&format!("Codec: {} not in target list", stream.codec_name));
+            to_process.push(file);
+            return;
+        }
 
+        if (CONFIG.video_targets.max_height != 0
+            && stream.height.unwrap() > CONFIG.video_targets.max_height)
+            || (CONFIG.video_targets.max_width != 0
+                && stream.width.unwrap() > CONFIG.video_targets.max_width)
+        {
+            debug_print_ln(&format!(
+                "Resolution {}x{} exceeds target {}x{}",
+                stream.width.unwrap(),
+                stream.height.unwrap(),
+                CONFIG.video_targets.max_width,
+                CONFIG.video_targets.max_height
+            ));
+            to_process.push(file);
+            return;
+        }
+
+        if CONFIG.video_targets.max_fps != 0.0
+            && stream.avg_frame_rate > CONFIG.video_targets.max_fps
+        {
+            debug_print_ln(&format!(
+                "FPS: {} exceeds target {}",
+                stream.avg_frame_rate, CONFIG.video_targets.max_fps
+            ));
+            to_process.push(file);
+            return;
+        }
+
+        if CONFIG.video_targets.max_bitrate != 0
+            && stream.bit_rate > CONFIG.video_targets.max_bitrate
+        {
+            debug_print_ln(&format!(
+                "Bitrate: {} exceeds target {}",
+                stream.bit_rate, CONFIG.video_targets.max_bitrate
+            ));
+            to_process.push(file);
+            return;
+        }
+    }
+
+    for stream in audio_streams {
+        if !CONFIG.audio_targets.codec.is_empty()
+            && !CONFIG.audio_targets.codec.contains(&stream.codec_name)
+        {
+            debug_print_ln(&format!("Codec: {} not in target list", stream.codec_name));
+            to_process.push(file);
+            return;
+        }
+    }
+}
+
+fn check_files(files: Vec<DirEntry>) -> Vec<MediaFile> {
+    let pb = utils::create_progress_bar(files.len() as u64, true, 500);
+    pb.set_message("Analyzing files...");
     let mut needs_processing = Vec::new();
+
+    let total_files = files.len();
 
     for file in files {
         pb.inc(1);
+        pb.tick();
 
         let info = ffprobe::get_file_info(&file);
 
-        let info = match info {
-            Ok(info) => {info}
-            Err(e) => {println!("Error processing file: {}", e); continue;}
+        let media_file = match info {
+            Ok(info) => MediaFile { path: file, info },
+            Err(e) => {
+                let mut error: String = String::new();
+                if CONFIG.streamline.debug {
+                    error = e;
+                } else {
+                    error = e.to_string();
+                }
+                println!("Error processing file: {}", error);
+                continue;
+            }
         };
 
-        let video_streams = info.streams.iter().filter(|s| s.codec_type == "video").collect::<Vec<_>>();
-        let audio_streams = info.streams.iter().filter(|s| s.codec_type == "audio").collect::<Vec<_>>();
+        let video_streams = media_file
+            .info
+            .streams
+            .iter()
+            .filter(|s| s.codec_type == "video")
+            .collect::<Vec<_>>();
+        let audio_streams = media_file
+            .info
+            .streams
+            .iter()
+            .filter(|s| s.codec_type == "audio")
+            .collect::<Vec<_>>();
 
-        for stream in video_streams {
-            if stream.codec_name != "h264" {
-                needs_processing.push(file.path());
-                break;
-            }
-        }
+        _check_file(media_file, &mut needs_processing);
+    }
+    utils::set_pb_finish_message(
+        &pb,
+        format!(
+            "✅ Files Analyzed! Found: {}/{} that need processing",
+            needs_processing.len(),
+            total_files
+        ),
+    );
 
-        for stream in audio_streams {
-            if stream.codec_name == "aac" {
-                needs_processing.push(file.path());
-                break;
-            }
-        }
-
-
-    };
-    utils::set_pb_finish_message(&pb, format!("✅ Files checked! Found: {} that need processing", needs_processing.len()));
+    return needs_processing;
 }
 
 fn sanity_check(path: &Path) {
@@ -72,23 +188,23 @@ fn sanity_check(path: &Path) {
     let mut failed = false;
 
     match fs::read_dir(path) {
-        Ok(_) => {spinner.tick()}
+        Ok(_) => spinner.tick(),
         Err(e) => {
             println!("Error reading directory: {}", e);
             failed = true;
         }
     }
 
-    match Command::new(&CONFIG.ffmpeg.ffmpeg_path).arg("-version").output() {
-        Ok(_) => {spinner.tick()}
-        Err(_) => {
-            println!("FFmpeg not found!");
+    match ffmpeg::check_ffmpeg() {
+        Ok(_) => spinner.tick(),
+        Err(e) => {
+            println!("{}", e);
             failed = true;
         }
     }
 
     match ffprobe::check_ffprobe() {
-        Ok(_) => {spinner.tick()}
+        Ok(_) => spinner.tick(),
         Err(e) => {
             println!("{}", e);
             failed = true;
@@ -109,8 +225,7 @@ fn collect_files_with_extensions(
     depth: u32,
     max_depth: u32,
     spinner: &ProgressBar,
-) -> io::Result<Vec<DirEntry>>
-{
+) -> io::Result<Vec<DirEntry>> {
     let mut files: Vec<DirEntry> = Vec::new();
 
     if depth <= max_depth {
@@ -126,14 +241,19 @@ fn collect_files_with_extensions(
                     Some(ext) => {
                         if extensions.contains(&ext.to_string_lossy().into_owned()) {
                             files.push(obj);
-
                         }
                     }
                     None => {}
                 }
-            }
-            else if recursive && path.is_dir() {
-                let sub_files = collect_files_with_extensions(&path, &extensions, recursive, depth + 1, max_depth, &spinner)?;
+            } else if recursive && path.is_dir() {
+                let sub_files = collect_files_with_extensions(
+                    &path,
+                    &extensions,
+                    recursive,
+                    depth + 1,
+                    max_depth,
+                    &spinner,
+                )?;
                 files.extend(sub_files);
             }
         }
