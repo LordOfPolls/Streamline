@@ -55,6 +55,12 @@ fn debug_print_ln(s: &str) {
 }
 
 fn _check_file(file: MediaFile, to_process: &mut Vec<MediaFile>) {
+    if CONFIG.video_targets.force_filter || CONFIG.audio_targets.force_filter {
+        debug_print_ln("Force filter enabled - processing all files");
+        to_process.push(file);
+        return;
+    }
+
     let video_streams = file
         .info
         .streams
