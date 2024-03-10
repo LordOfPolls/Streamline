@@ -1,6 +1,5 @@
 use std::process::Command;
 
-use crate::debug_print_ln;
 use crate::models::config::CONFIG;
 use serde_json;
 use std::fs::DirEntry;
@@ -42,15 +41,6 @@ pub fn call_ffprobe(file: &DirEntry) -> Result<String, String> {
 
 pub fn get_file_info(file: &DirEntry) -> Result<FFProbeOutput, String> {
     // ffprobe -v quiet -show_format -show_streams -show_entries stream_tags:format_tags -print_format json
-    if file
-        .path()
-        .to_string_lossy()
-        .to_lowercase()
-        .contains("charlie")
-    {
-        debug_print_ln("Charlie detected - processing all files");
-    }
-
     parse_ffprobe_output(&call_ffprobe(file)?)
 }
 

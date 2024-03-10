@@ -68,3 +68,11 @@ where
     let denominator = parts[1].parse::<f64>().unwrap();
     Ok(numerator / denominator)
 }
+
+pub fn get_system_path_separator() -> String {
+    if cfg!(windows) {
+        "\\".to_string()
+    } else {
+        "/".to_string()
+    }
+}

@@ -1,6 +1,6 @@
 [streamline]
-source_directory = "D:\\ramdisk_cache"
-output_directory = "D:\\ramdisk_cache\\Output"  # Output directory for encoded files, blank to use the same directory as the file
+source_directory = "z:\\"
+output_directory = ""  # Output directory for encoded files, blank to use the same directory as the file
 exclude_directories = ["injest", "plexdata"]
 recursive = true  # Recursively search for files in source directory
 max_depth = 5  # Maximum depth to search for files in source directory
@@ -8,6 +8,7 @@ file_extensions = ["mp4", "avi", "mkv", "mov", "wmv", "flv", "webm", "m4v", "3gp
 dry_run = false  # Simulate encoding without modifying files
 debug = false  # Enable debug mode
 output_extension = "mkv"  # Output file extension
+output_format = "matroska"  # Output file format
 replace_if_smaller = false  # Replace source file if output is smaller
 always_replace = false  # Always replace source file
 temporary_suffix = "_temp"  # Suffix to append to file name during encoding
@@ -16,21 +17,25 @@ temp_directory = ""  # Temporary directory for encoded files
 [ffmpeg]
 ffmpeg_path = "ffmpeg"
 ffprobe_path = "ffprobe"
-threads = 0
+threads = 0  # Number of threads to use for encoding, 0 for default
+# behavior of threads when set to 0
+# "default" - ffmpeg will manage it's own threads
+# "available_parallelism" - use rust's available_parallelism function to determine the number of threads
+threads_auto_behavior = "available_parallelism"
 log_level = "info"  # FFmpeg logging level (quiet, panic, fatal, error, warning, info, verbose, debug, trace)
 
 [video_targets]
 codec = ["hevc", "h264", "h265"]
 max_bitrate = 0
 crf = -1
-ffmpeg_preset = "medium"
+ffmpeg_preset = "veryfast"
 max_width = 0
 max_height = 0
 max_fps = 0
 filters = ""
 force_filter = false
 pix_fmt = "yuv420p"  # Output pixel format
-tune = "film"  # Tuning options (film, animation, grain, stillimage, fastdecode, zerolatency)
+tune = ""  # Tuning options (film, animation, grain, stillimage, fastdecode, zerolatency)
 x265_params = ""  # Additional x265 parameters
 
 [audio_targets]

@@ -1,10 +1,10 @@
 use crate::models::config::CONFIG;
 use crate::models::file::MediaFile;
 use crate::models::media::Stream;
+use crate::utils;
 use std::fs::DirEntry;
 use std::path::Path;
 use std::process::Command;
-use std::thread::sleep;
 
 pub fn check_ffmpeg() -> Result<(), String> {
     match Command::new(&CONFIG.ffmpeg.ffmpeg_path)
@@ -24,10 +24,16 @@ pub fn get_output_path(input_file: &DirEntry) -> String {
         .unwrap()
         .to_string();
     if !CONFIG.streamline.output_directory.is_empty() {
-        working_path = working_path.split("/").last().unwrap().to_string();
+        working_path = working_path
+            .split(&utils::get_system_path_separator())
+            .last()
+            .unwrap()
+            .to_string();
         working_path = format!(
-            "{}/{}.{}",
-            &CONFIG.streamline.output_directory, working_path, &CONFIG.streamline.output_extension
+            "{}{}{}",
+            &CONFIG.streamline.output_directory,
+            utils::get_system_path_separator(),
+            working_path
         );
     }
     return format!("{}.{}", working_path, &CONFIG.streamline.temporary_suffix);
@@ -134,28 +140,18 @@ fn apply_audio_arguments(stream: &Stream, command: &mut Command, default_set: &m
     if !CONFIG.audio_targets.codec.is_empty()
         && !CONFIG.audio_targets.codec.contains(&stream.codec_name)
     {
-        command.arg(format!(
-            "-c:a:{} {}",
-            stream.index, &CONFIG.audio_targets.codec[0]
-        ));
+        command
+            .arg(format!("-c:a:{}", stream.index,))
+            .arg(&CONFIG.audio_targets.codec[0]);
     }
 
     if !CONFIG.audio_targets.sample_rate.is_empty() {
         let source_rate = stream.sample_rate;
         if !CONFIG.audio_targets.sample_rate.contains(&source_rate) {
-            command.arg(format!(
-                "-ar:{} {}",
-                stream.index, &CONFIG.audio_targets.sample_rate[0]
-            ));
+            command
+                .arg(format!("-ar:{}", stream.index,))
+                .arg(&CONFIG.audio_targets.sample_rate[0].to_string());
         }
-    }
-
-    if CONFIG.audio_targets.channels != 0 {
-        command.arg(format!(
-            "-ac:{} {}",
-            stream.index,
-            &CONFIG.audio_targets.channels.to_string()
-        ));
     }
 
     if !CONFIG.audio_targets.language.is_empty()
@@ -165,43 +161,40 @@ fn apply_audio_arguments(stream: &Stream, command: &mut Command, default_set: &m
             .language
             .contains(&stream.tags.language)
     {
-        command.arg(format!("-map -0:{}", stream.index));
+        command.arg("-map").arg(format!("-0:{}", stream.index));
     }
 
     if !*default_set
         && CONFIG.audio_targets.default_language != ""
         && stream.tags.language == CONFIG.audio_targets.default_language
     {
-        command.arg(format!("-disposition:a:{} default", stream.index));
+        command
+            .arg(format!("-disposition:a:{}", stream.index))
+            .arg("default");
         *default_set = true;
     } else if stream.disposition.default == 1 {
-        command.arg(format!("-disposition:a:{} 0", stream.index));
+        command
+            .arg(format!("-disposition:a:{}", stream.index))
+            .arg("0");
     }
 }
 
 fn apply_subtitle_arguments(stream: &Stream, command: &mut Command, default_set: &mut bool) {
-    if !CONFIG.subtitles.codec.is_empty() && !CONFIG.subtitles.codec.contains(&stream.codec_name) {
-        command.arg(format!(
-            "-c:s:{} {}",
-            stream.index, &CONFIG.subtitles.codec[0]
-        ));
-    }
-
     if !CONFIG.subtitles.language.is_empty()
         && stream.tags.language != ""
         && !CONFIG.subtitles.language.contains(&stream.tags.language)
     {
-        command.arg(format!("-map -0:{}", stream.index));
+        command.arg("-map").arg(format!("-0:s:{}?", stream.index));
     }
 
     if !*default_set
         && CONFIG.subtitles.default_language != ""
         && stream.tags.language == CONFIG.subtitles.default_language
     {
-        command.arg(format!("-disposition:s:{} default", stream.index));
+        command.arg("-disposition").arg("default");
         *default_set = true;
     } else if stream.disposition.default == 1 {
-        command.arg(format!("-disposition:s:{} 0", stream.index));
+        command.arg(format!("-disposition:s:{}", stream.index));
     }
 }
 
@@ -245,10 +238,21 @@ fn handle_completed_file(input_file: &MediaFile, output_file: &str) -> Result<()
 pub fn process_file(input_file: &MediaFile) -> Result<(), String> {
     let output_file = get_output_path(&input_file.path);
 
+    if Path::new(&output_file).exists() {
+        std::fs::remove_file(&output_file).unwrap();
+    }
+
     let mut command = Command::new(&CONFIG.ffmpeg.ffmpeg_path);
     let mut filters = Vec::new();
 
-    command.arg(format!("-i {}", input_file.path.path().to_str().unwrap()));
+    command.arg("-i").arg(&input_file.path.path());
+    command.arg("-xerror");
+    command.arg("-v").arg("error");
+    command.arg("-f").arg(&CONFIG.streamline.output_format);
+
+    if CONFIG.get_threads() != 0 {
+        command.arg("-threads").arg(&CONFIG.get_threads().to_string());
+    }
 
     let video_streams = input_file.info.get_streams_of_type("video");
     let audio_streams = input_file.info.get_streams_of_type("audio");
@@ -314,18 +318,32 @@ pub fn process_file(input_file: &MediaFile) -> Result<(), String> {
         command.arg("-vf").arg(filters.join(","));
     }
     command.arg(&output_file);
-    sleep(std::time::Duration::from_millis(500));
 
     if CONFIG.streamline.dry_run {
         println!("Would run command: {:?}", command);
         return Ok(());
     } else {
         match command.output() {
-            Ok(_) => {
+            Ok(cmd_out) => {
                 handle_completed_file(&input_file, &output_file)?;
+                if !cmd_out.status.success() {
+                    return Err(format!(
+                        "Error running ffmpeg: {} -- {:?}",
+                        String::from_utf8_lossy(&cmd_out.stderr),
+                        command
+                    ));
+                }
+                if CONFIG.streamline.debug {
+                    println!(
+                        "CMD: {:?}\nOutput: {}",
+                        command,
+                        String::from_utf8_lossy(&cmd_out.stdout)
+                    );
+                }
+
                 Ok(())
             }
-            Err(e) => Err(e.to_string()),
+            Err(e) => Err(format!("Error running ffmpeg: {} -- {:?}", e, command)),
         }
     }
 }

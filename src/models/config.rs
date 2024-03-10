@@ -3,6 +3,7 @@ use once_cell::sync::Lazy;
 use serde::Deserialize;
 use std::fs;
 use std::path::Path;
+use std::thread::available_parallelism;
 
 pub static CONFIG: Lazy<Config> = Lazy::new(|| load_config());
 
@@ -71,7 +72,24 @@ impl Config {
             fs::create_dir_all(&self.streamline.output_directory).unwrap();
         }
 
+        match self.ffmpeg.threads_auto_behavior.as_str() {
+            "default" => {},
+            "available_parallelism" => {},
+            _ => {
+                println!("Error: threads_auto_behavior must be one of: default, available_parallelism");
+                failed = true;
+            }
+        }
+
         return failed;
+    }
+
+    pub fn get_threads(&self) -> u32 {
+        match self.ffmpeg.threads_auto_behavior.as_str() {
+            "default" => self.ffmpeg.threads,
+            "available_parallelism" => available_parallelism().unwrap().to_string().parse().unwrap(),
+            _ => self.ffmpeg.threads,
+        }
     }
 }
 
@@ -85,6 +103,7 @@ pub struct StreamLine {
     pub dry_run: bool,
     pub debug: bool,
     pub output_extension: String,
+    pub output_format: String,
     pub replace_if_smaller: bool,
     pub always_replace: bool,
     pub temp_directory: String,
@@ -97,6 +116,7 @@ pub struct FFmpeg {
     pub ffmpeg_path: String,
     pub ffprobe_path: String,
     pub threads: u32,
+    pub threads_auto_behavior: String,
     pub log_level: String,
 }
 #[derive(Debug, Deserialize)]
