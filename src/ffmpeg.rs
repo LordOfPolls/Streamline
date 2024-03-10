@@ -2,6 +2,7 @@ use crate::models::config::CONFIG;
 use crate::models::file::MediaFile;
 use crate::models::media::Stream;
 use std::fs::DirEntry;
+use std::path::Path;
 use std::process::Command;
 use std::thread::sleep;
 
@@ -18,18 +19,18 @@ pub fn check_ffmpeg() -> Result<(), String> {
 pub fn get_output_path(input_file: &DirEntry) -> String {
     let mut working_path = input_file
         .path()
-        .with_extension(&CONFIG.output.output_extension)
+        .with_extension(&CONFIG.streamline.output_extension)
         .to_str()
         .unwrap()
         .to_string();
-    if !CONFIG.output.output_directory.is_empty() {
+    if !CONFIG.streamline.output_directory.is_empty() {
         working_path = working_path.split("/").last().unwrap().to_string();
         working_path = format!(
             "{}/{}.{}",
-            &CONFIG.output.output_directory, working_path, &CONFIG.output.output_extension
+            &CONFIG.streamline.output_directory, working_path, &CONFIG.streamline.output_extension
         );
     }
-    return working_path;
+    return format!("{}.{}", working_path, &CONFIG.streamline.temporary_suffix);
 }
 
 fn apply_aspect_ratio_corrections(stream: &Stream, filters: &mut Vec<String>) {
@@ -204,6 +205,43 @@ fn apply_subtitle_arguments(stream: &Stream, command: &mut Command, default_set:
     }
 }
 
+fn handle_completed_file(input_file: &MediaFile, output_file: &str) -> Result<(), String> {
+    if CONFIG.streamline.always_replace {
+        match std::fs::rename(output_file, &input_file.path.path()) {
+            Ok(_) => Ok(()),
+            Err(e) => Err(e.to_string()),
+        }
+    } else if CONFIG.streamline.replace_if_smaller {
+        let input_size = input_file.path.metadata().unwrap().len();
+        let output_size = std::fs::metadata(output_file).unwrap().len();
+        if output_size < input_size {
+            match std::fs::rename(output_file, &input_file.path.path()) {
+                Ok(_) => Ok(()),
+                Err(e) => Err(e.to_string()),
+            }
+        } else {
+            match std::fs::remove_file(output_file) {
+                Ok(_) => Ok(()),
+                Err(e) => Err(e.to_string()),
+            }
+        }
+    } else {
+        let desired_name = output_file
+            .strip_suffix(&CONFIG.streamline.temporary_suffix)
+            .unwrap();
+        if Path::new(desired_name).exists() {
+            return Err(format!(
+                "File already exists and would be overwritten: {}",
+                desired_name
+            ));
+        }
+        match std::fs::rename(output_file, desired_name) {
+            Ok(_) => Ok(()),
+            Err(e) => Err(e.to_string()),
+        }
+    }
+}
+
 pub fn process_file(input_file: &MediaFile) -> Result<(), String> {
     let output_file = get_output_path(&input_file.path);
 
@@ -275,7 +313,7 @@ pub fn process_file(input_file: &MediaFile) -> Result<(), String> {
     if filters.len() > 0 {
         command.arg("-vf").arg(filters.join(","));
     }
-    command.arg(output_file);
+    command.arg(&output_file);
     sleep(std::time::Duration::from_millis(500));
 
     if CONFIG.streamline.dry_run {
@@ -283,7 +321,10 @@ pub fn process_file(input_file: &MediaFile) -> Result<(), String> {
         return Ok(());
     } else {
         match command.output() {
-            Ok(_) => Ok(()),
+            Ok(_) => {
+                handle_completed_file(&input_file, &output_file)?;
+                Ok(())
+            }
             Err(e) => Err(e.to_string()),
         }
     }

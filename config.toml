@@ -1,25 +1,23 @@
 [streamline]
 source_directory = "z:\\"
-exclude_directories = ["injest"]
+exclude_directories = ["injest", "plexdata"]
 recursive = true  # Recursively search for files in source directory
-max_depth = 2  # Maximum depth to search for files in source directory
+max_depth = 5  # Maximum depth to search for files in source directory
 file_extensions = ["mp4", "avi", "mkv", "mov", "wmv", "flv", "webm", "m4v", "3gp", "mpg", "mpeg"]
 dry_run = false  # Simulate encoding without modifying files
 debug = false  # Enable debug mode
+output_extension = "mkv"  # Output file extension
+replace_if_smaller = false  # Replace source file if output is smaller
+always_replace = false  # Always replace source file
+temporary_suffix = "_temp"  # Suffix to append to file name during encoding
+temp_directory = ""  # Temporary directory for encoded files
+output_directory = ""  # Output directory for encoded files, blank to use the same directory as the file
 
 [ffmpeg]
 ffmpeg_path = "ffmpeg"
 ffprobe_path = "ffprobe"
 threads = 0
 log_level = "info"  # FFmpeg logging level (quiet, panic, fatal, error, warning, info, verbose, debug, trace)
-
-[output]
-temporary_suffix = "_temp"  # Suffix to append to file name during encoding
-temp_directory = ""  # Temporary directory for encoded files
-output_directory = ""  # Output directory for encoded files
-output_extension = "mkv"  # Output file extension
-output_format = "matroska"  # Output container format
-delete_source = false  # Delete source file after successful encoding
 
 [video_targets]
 codec = ["hevc", "h264", "h265"]

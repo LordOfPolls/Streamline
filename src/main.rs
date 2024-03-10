@@ -19,7 +19,7 @@ fn main() {
 
     sanity_check(path);
 
-    let collection_spinner = utils::create_spinner(true);
+    let collection_spinner = utils::create_spinner(false);
     let files = collect_files_with_extensions(
         path,
         extensions,
@@ -204,6 +204,8 @@ fn sanity_check(path: &Path) {
         }
     }
 
+    failed = CONFIG.sanity_check() || failed;
+
     if failed {
         println!("❌ Sanity check failed!");
         std::process::exit(1);
@@ -236,6 +238,7 @@ fn collect_files_with_extensions(
         for obj in objs {
             let obj = obj?;
             let path = obj.path();
+            spinner.tick();
 
             if path.is_file() {
                 match path.extension() {

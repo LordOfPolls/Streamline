@@ -33,11 +33,37 @@ fn load_config() -> Config {
 pub struct Config {
     pub streamline: StreamLine,
     pub ffmpeg: FFmpeg,
-    pub output: Output,
     pub video_targets: VideoTargets,
     pub audio_targets: AudioTargets,
     pub subtitles: Subtitles,
     pub filters: Filters,
+}
+
+impl Config {
+    pub fn sanity_check(&self) -> bool {
+        let mut failed: bool = false;
+        if self.streamline.always_replace {
+            if self.streamline.replace_if_smaller {
+                println!("Error: always_replace and replace_if_smaller cannot both be true");
+                failed = true;
+            }
+            if self.streamline.output_directory != "" {
+                println!("Error: always_replace and output_directory cannot both be set");
+                failed = true;
+            }
+        }
+
+        if self.streamline.max_depth == 0 {
+            println!("Error: max_depth cannot be 0 - It must be a sane positive number");
+            failed = true;
+        }
+
+        if self.streamline.temporary_suffix == "" {
+            println!("Error: temporary_suffix cannot be empty");
+            failed = true;
+        }
+        return failed;
+    }
 }
 
 #[derive(Debug, Deserialize)]
@@ -49,6 +75,12 @@ pub struct StreamLine {
     pub file_extensions: Vec<String>,
     pub dry_run: bool,
     pub debug: bool,
+    pub output_extension: String,
+    pub replace_if_smaller: bool,
+    pub always_replace: bool,
+    pub temp_directory: String,
+    pub temporary_suffix: String,
+    pub output_directory: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -58,17 +90,6 @@ pub struct FFmpeg {
     pub threads: u32,
     pub log_level: String,
 }
-
-#[derive(Debug, Deserialize)]
-pub struct Output {
-    pub temporary_suffix: String,
-    pub temp_directory: String,
-    pub output_directory: String,
-    pub output_extension: String,
-    pub output_format: String,
-    pub delete_source: bool,
-}
-
 #[derive(Debug, Deserialize)]
 pub struct VideoTargets {
     pub codec: Vec<String>,
