@@ -1,14 +1,16 @@
 use std::process::Command;
 
-
-use std::fs::DirEntry;
+use crate::models::config::CONFIG;
 use serde_json;
-use crate::models::config::{CONFIG};
+use std::fs::DirEntry;
 
-use crate::models::media::{FFProbeOutput};
+use crate::models::media::FFProbeOutput;
 
 pub fn check_ffprobe() -> Result<(), String> {
-    match Command::new(&CONFIG.ffmpeg.ffprobe_path).arg("-version").output() {
+    match Command::new(&CONFIG.ffmpeg.ffprobe_path)
+        .arg("-version")
+        .output()
+    {
         Ok(_) => Ok(()),
         Err(_) => Err("FFprobe not found!".to_string()),
     }
@@ -43,5 +45,6 @@ pub fn get_file_info(file: &DirEntry) -> Result<FFProbeOutput, String> {
 }
 
 fn parse_ffprobe_output(output: &str) -> Result<FFProbeOutput, String> {
-    serde_json::from_str(output).map_err(|e| format!("Error parsing ffprobe output: {}\nOutput: {}", e, output))
+    serde_json::from_str(output)
+        .map_err(|e| format!("Error parsing ffprobe output: {}\nOutput: {}", e, output))
 }
