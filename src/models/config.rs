@@ -46,6 +46,7 @@ pub struct StreamLine {
     pub recursive: bool,
     pub max_depth: u32,
     pub file_extensions: Vec<String>,
+    pub dry_run: bool,
 }
 
 #[derive(Debug, Deserialize)]
