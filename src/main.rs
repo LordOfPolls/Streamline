@@ -143,7 +143,7 @@ fn check_files(files: Vec<DirEntry>) -> Vec<MediaFile> {
         let media_file = match info {
             Ok(info) => MediaFile { path: file, info },
             Err(e) => {
-                let mut error: String = String::new();
+                let error: String;
                 if CONFIG.streamline.debug {
                     error = e;
                 } else {
@@ -153,19 +153,6 @@ fn check_files(files: Vec<DirEntry>) -> Vec<MediaFile> {
                 continue;
             }
         };
-
-        let video_streams = media_file
-            .info
-            .streams
-            .iter()
-            .filter(|s| s.codec_type == "video")
-            .collect::<Vec<_>>();
-        let audio_streams = media_file
-            .info
-            .streams
-            .iter()
-            .filter(|s| s.codec_type == "audio")
-            .collect::<Vec<_>>();
 
         _check_file(media_file, &mut needs_processing);
     }
@@ -227,6 +214,14 @@ fn collect_files_with_extensions(
     spinner: &ProgressBar,
 ) -> io::Result<Vec<DirEntry>> {
     let mut files: Vec<DirEntry> = Vec::new();
+
+    if !CONFIG.streamline.exclude_directories.is_empty() {
+        for dir in &CONFIG.streamline.exclude_directories {
+            if path.ends_with(dir) {
+                return Ok(files);
+            }
+        }
+    }
 
     if depth <= max_depth {
         let objs = fs::read_dir(path)?;

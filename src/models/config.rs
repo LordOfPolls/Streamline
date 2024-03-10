@@ -43,6 +43,7 @@ pub struct Config {
 #[derive(Debug, Deserialize)]
 pub struct StreamLine {
     pub source_directory: String,
+    pub exclude_directories: Vec<String>,
     pub recursive: bool,
     pub max_depth: u32,
     pub file_extensions: Vec<String>,
