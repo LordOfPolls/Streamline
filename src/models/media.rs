@@ -7,6 +7,25 @@ pub struct FFProbeOutput {
     pub format: Format,
 }
 
+impl FFProbeOutput {
+    pub fn get_streams_of_type(&self, codec_type: &str) -> Vec<&Stream> {
+        self.streams
+            .iter()
+            .filter(|s| s.codec_type == codec_type)
+            .collect()
+    }
+
+    pub fn get_default_stream_of_type(&self, codec_type: &str) -> Option<&Stream> {
+        let streams = self.get_streams_of_type(codec_type);
+        for stream in streams {
+            if stream.disposition.default == 1 {
+                return Some(stream);
+            }
+        }
+        None
+    }
+}
+
 #[derive(Deserialize, Debug, Default)]
 pub struct Stream {
     pub index: u32,
