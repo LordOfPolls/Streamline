@@ -166,6 +166,16 @@ pub fn process_file(input_file: &MediaFile) -> Result<(), String> {
         apply_audio_arguments(stream, &mut command);
     }
 
+    let user_video_filters = CONFIG.video_targets.filters.clone();
+    let user_audio_filters = CONFIG.audio_targets.filters.clone();
+
+    if user_video_filters.len() > 0 {
+        filters.push(user_video_filters.split(",").collect::<Vec<&str>>().join(","));
+    }
+    if user_audio_filters.len() > 0 {
+        filters.push(user_audio_filters.split(",").collect::<Vec<&str>>().join(","));
+    }
+
     if filters.len() > 0 {
         command.arg("-vf").arg(filters.join(","));
     }
