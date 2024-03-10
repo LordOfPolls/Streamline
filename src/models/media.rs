@@ -1,4 +1,5 @@
 use serde::Deserialize;
+use crate::utils;
 
 #[derive(Deserialize, Debug)]
 pub struct FFProbeOutput {
@@ -38,15 +39,21 @@ pub struct Stream {
     pub is_avc: Option<String>,
     pub nal_length_size: Option<String>,
     pub sample_fmt: Option<String>,
-    pub sample_rate: Option<String>,
+    #[serde(deserialize_with = "utils::parse_u32")]
+    #[serde(default="u32::default")]
+    pub sample_rate: u32,
     pub channels: Option<u32>,
     pub channel_layout: Option<String>,
     pub bits_per_sample: Option<u32>,
     pub initial_padding: Option<u32>,
     #[serde(default="String::new")]
     pub id: String,
-    pub r_frame_rate: String,
-    pub avg_frame_rate: String,
+    #[serde(deserialize_with = "utils::parse_frame_rate")]
+    #[serde(default="f64::default")]
+    pub r_frame_rate: f64,
+    #[serde(deserialize_with = "utils::parse_frame_rate")]
+    #[serde(default="f64::default")]
+    pub avg_frame_rate: f64,
     pub time_base: String,
     #[serde(default="i64::default")]
     pub start_pts: i64,
@@ -56,8 +63,10 @@ pub struct Stream {
     pub duration_ts: u64,
     #[serde(default="String::new")]
     pub duration: String,
-    #[serde(default="String::new")]
-    pub bit_rate: String,
+
+    #[serde(default="u32::default")]
+    #[serde(deserialize_with = "utils::parse_u32")]
+    pub bit_rate: u32,
     pub bits_per_raw_sample: Option<String>,
     pub nb_frames: Option<String>,
     #[serde(default="u32::default")]
