@@ -9,16 +9,11 @@ your specified requirements.
 
 Ensure you have Rust installed on your system. If not, you can download and install Rust from the official website: https://www.rust-lang.org/
 Clone the Streamline repository:
-
-git clone https://github.com/your-username/streamline.git
-
-Navigate to the project directory:
-
-`cd streamline`
-
-Build the project:
-
-`cargo build --release`
+```
+git clone https://github.com/LordOfPolls/Streamline.git
+cd streamline
+cargo build --release
+```
 
 The compiled binary will be available in the target/release directory.
 
