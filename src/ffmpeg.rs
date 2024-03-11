@@ -251,7 +251,9 @@ pub fn process_file(input_file: &MediaFile) -> Result<(), String> {
     command.arg("-f").arg(&CONFIG.streamline.output_format);
 
     if CONFIG.get_threads() != 0 {
-        command.arg("-threads").arg(&CONFIG.get_threads().to_string());
+        command
+            .arg("-threads")
+            .arg(&CONFIG.get_threads().to_string());
     }
 
     let video_streams = input_file.info.get_streams_of_type("video");

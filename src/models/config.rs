@@ -73,10 +73,12 @@ impl Config {
         }
 
         match self.ffmpeg.threads_auto_behavior.as_str() {
-            "default" => {},
-            "available_parallelism" => {},
+            "default" => {}
+            "available_parallelism" => {}
             _ => {
-                println!("Error: threads_auto_behavior must be one of: default, available_parallelism");
+                println!(
+                    "Error: threads_auto_behavior must be one of: default, available_parallelism"
+                );
                 failed = true;
             }
         }
@@ -87,7 +89,11 @@ impl Config {
     pub fn get_threads(&self) -> u32 {
         match self.ffmpeg.threads_auto_behavior.as_str() {
             "default" => self.ffmpeg.threads,
-            "available_parallelism" => available_parallelism().unwrap().to_string().parse().unwrap(),
+            "available_parallelism" => available_parallelism()
+                .unwrap()
+                .to_string()
+                .parse()
+                .unwrap(),
             _ => self.ffmpeg.threads,
         }
     }
@@ -95,22 +101,37 @@ impl Config {
     pub fn display(&self) {
         println!();
         println!("   StreamLine Configuration:");
-        println!("     Source Directory: {}"   , self.streamline.source_directory);
-        println!("     Output Directory: {}"   , self.streamline.output_directory);
-        println!("     File Extensions: {:?}"   , self.streamline.file_extensions);
-        println!("     Output Format: {}"   , self.streamline.output_format);
+        println!(
+            "     Source Directory: {}",
+            self.streamline.source_directory
+        );
+        println!(
+            "     Output Directory: {}",
+            self.streamline.output_directory
+        );
+        println!(
+            "     File Extensions: {:?}",
+            self.streamline.file_extensions
+        );
+        println!("     Output Format: {}", self.streamline.output_format);
 
-        println!("\n   FFmpeg Configuration:"   );
-        println!("     Threads: {}"   , self.get_threads());
-        println!("     Video Codec: {:?}"   , self.video_targets.codec);
-        println!("     FFmpeg Preset: {}"   , self.video_targets.ffmpeg_preset);
+        println!("\n   FFmpeg Configuration:");
+        println!("     Threads: {}", self.get_threads());
+        println!("     Video Codec: {:?}", self.video_targets.codec);
+        println!("     FFmpeg Preset: {}", self.video_targets.ffmpeg_preset);
 
-        println!("     Audio Codec: {:?}"   , self.audio_targets.codec);
-        println!("     Language: {:?}"   , self.audio_targets.language);
-        println!("     Audio Default Language: {}"   , self.audio_targets.default_language);
+        println!("     Audio Codec: {:?}", self.audio_targets.codec);
+        println!("     Language: {:?}", self.audio_targets.language);
+        println!(
+            "     Audio Default Language: {}",
+            self.audio_targets.default_language
+        );
 
-        println!("     Language: {:?}"   , self.subtitles.language);
-        println!("     Subtitle Default Language: {}"   , self.subtitles.default_language);
+        println!("     Language: {:?}", self.subtitles.language);
+        println!(
+            "     Subtitle Default Language: {}",
+            self.subtitles.default_language
+        );
     }
 }
 
