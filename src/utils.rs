@@ -47,7 +47,7 @@ where
     D: Deserializer<'de>,
 {
     let s = String::deserialize(deserializer)?;
-    u32::from_str_radix(&s, 10).map_err(serde::de::Error::custom)
+    s.parse::<u32>().map_err(serde::de::Error::custom)
 }
 
 // pub fn parse_u64<'de, D>(deserializer: D) -> Result<u64, D::Error>

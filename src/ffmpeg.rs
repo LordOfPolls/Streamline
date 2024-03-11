@@ -36,11 +36,11 @@ pub fn get_output_path(input_file: &DirEntry) -> String {
             working_path
         );
     }
-    return format!("{}.{}", working_path, &CONFIG.streamline.temporary_suffix);
+    format!("{}.{}", working_path, &CONFIG.streamline.temporary_suffix)
 }
 
 fn apply_aspect_ratio_corrections(stream: &Stream, filters: &mut Vec<String>) {
-    if !stream.width.is_some() || !stream.height.is_some() {
+    if stream.width.is_none() || stream.height.is_none() {
         // No width or height, nothing to do
         return;
     }
@@ -101,21 +101,21 @@ fn apply_video_arguments(info: &Stream, command: &mut Command) {
             .arg(&CONFIG.video_targets.crf.to_string());
     }
 
-    if CONFIG.video_targets.ffmpeg_preset != "" {
+    if !CONFIG.video_targets.ffmpeg_preset.is_empty() {
         command
             .arg("-preset")
             .arg(&CONFIG.video_targets.ffmpeg_preset);
     }
 
-    if CONFIG.video_targets.pix_fmt != "" {
+    if !CONFIG.video_targets.pix_fmt.is_empty() {
         command.arg("-pix_fmt").arg(&CONFIG.video_targets.pix_fmt);
     }
 
-    if CONFIG.video_targets.tune != "" {
+    if !CONFIG.video_targets.tune.is_empty() {
         command.arg("-tune").arg(&CONFIG.video_targets.tune);
     }
 
-    if CONFIG.video_targets.x265_params != "" {
+    if !CONFIG.video_targets.x265_params.is_empty() {
         command
             .arg("-x265-params")
             .arg(&CONFIG.video_targets.x265_params);
@@ -155,7 +155,7 @@ fn apply_audio_arguments(stream: &Stream, command: &mut Command, default_set: &m
     }
 
     if !CONFIG.audio_targets.language.is_empty()
-        && stream.tags.language != ""
+        && !stream.tags.language.is_empty()
         && !CONFIG
             .audio_targets
             .language
@@ -165,7 +165,7 @@ fn apply_audio_arguments(stream: &Stream, command: &mut Command, default_set: &m
     }
 
     if !*default_set
-        && CONFIG.audio_targets.default_language != ""
+        && !CONFIG.audio_targets.default_language.is_empty()
         && stream.tags.language == CONFIG.audio_targets.default_language
     {
         command
@@ -181,14 +181,14 @@ fn apply_audio_arguments(stream: &Stream, command: &mut Command, default_set: &m
 
 fn apply_subtitle_arguments(stream: &Stream, command: &mut Command, default_set: &mut bool) {
     if !CONFIG.subtitles.language.is_empty()
-        && stream.tags.language != ""
+        && !stream.tags.language.is_empty()
         && !CONFIG.subtitles.language.contains(&stream.tags.language)
     {
         command.arg("-map").arg(format!("-0:s:{}?", stream.index));
     }
 
     if !*default_set
-        && CONFIG.subtitles.default_language != ""
+        && !CONFIG.subtitles.default_language.is_empty()
         && stream.tags.language == CONFIG.subtitles.default_language
     {
         command.arg("-disposition").arg("default");
@@ -200,7 +200,7 @@ fn apply_subtitle_arguments(stream: &Stream, command: &mut Command, default_set:
 
 fn handle_completed_file(input_file: &MediaFile, output_file: &str) -> Result<(), String> {
     if CONFIG.streamline.always_replace {
-        match std::fs::rename(output_file, &input_file.path.path()) {
+        match std::fs::rename(output_file, input_file.path.path()) {
             Ok(_) => Ok(()),
             Err(e) => Err(e.to_string()),
         }
@@ -208,7 +208,7 @@ fn handle_completed_file(input_file: &MediaFile, output_file: &str) -> Result<()
         let input_size = input_file.path.metadata().unwrap().len();
         let output_size = std::fs::metadata(output_file).unwrap().len();
         if output_size < input_size {
-            match std::fs::rename(output_file, &input_file.path.path()) {
+            match std::fs::rename(output_file, input_file.path.path()) {
                 Ok(_) => Ok(()),
                 Err(e) => Err(e.to_string()),
             }
@@ -260,36 +260,34 @@ pub fn process_file(input_file: &MediaFile) -> Result<(), String> {
     let audio_streams = input_file.info.get_streams_of_type("audio");
     let subtitle_streams = input_file.info.get_streams_of_type("subtitle");
 
-    if video_streams.len() == 0 {
+    if video_streams.is_empty() {
         return Err("No video streams found!".to_string());
     }
-    apply_video_arguments(&video_streams[0], &mut command);
+    apply_video_arguments(video_streams[0], &mut command);
     apply_video_filters(&mut filters);
-    apply_aspect_ratio_corrections(&video_streams[0], &mut filters);
+    apply_aspect_ratio_corrections(video_streams[0], &mut filters);
 
     let default_audio = input_file.info.get_default_stream_of_type("audio");
     let mut audio_default_set = false;
-    if default_audio.is_some() {
-        if CONFIG.audio_targets.default_language != ""
-            && default_audio.unwrap().tags.language == CONFIG.audio_targets.default_language
-        {
-            audio_default_set = true;
-        }
+    if default_audio.is_some()
+        && !CONFIG.audio_targets.default_language.is_empty()
+        && default_audio.unwrap().tags.language == CONFIG.audio_targets.default_language
+    {
+        audio_default_set = true;
     }
 
     for stream in audio_streams {
         apply_audio_arguments(stream, &mut command, &mut audio_default_set);
     }
 
-    if subtitle_streams.len() > 0 {
+    if !subtitle_streams.is_empty() {
         let mut subtitle_default_set = false;
         let default_subtitle = input_file.info.get_default_stream_of_type("subtitle");
-        if default_subtitle.is_some() {
-            if CONFIG.subtitles.default_language != ""
-                && default_subtitle.unwrap().tags.language == CONFIG.subtitles.default_language
-            {
-                subtitle_default_set = true;
-            }
+        if default_subtitle.is_some()
+            && !CONFIG.subtitles.default_language.is_empty()
+            && default_subtitle.unwrap().tags.language == CONFIG.subtitles.default_language
+        {
+            subtitle_default_set = true;
         }
         for stream in subtitle_streams {
             apply_subtitle_arguments(stream, &mut command, &mut subtitle_default_set);
@@ -299,35 +297,35 @@ pub fn process_file(input_file: &MediaFile) -> Result<(), String> {
     let user_video_filters = CONFIG.video_targets.filters.clone();
     let user_audio_filters = CONFIG.audio_targets.filters.clone();
 
-    if user_video_filters.len() > 0 {
+    if !user_video_filters.is_empty() {
         filters.push(
             user_video_filters
-                .split(",")
+                .split(',')
                 .collect::<Vec<&str>>()
                 .join(","),
         );
     }
-    if user_audio_filters.len() > 0 {
+    if !user_audio_filters.is_empty() {
         filters.push(
             user_audio_filters
-                .split(",")
+                .split(',')
                 .collect::<Vec<&str>>()
                 .join(","),
         );
     }
 
-    if filters.len() > 0 {
+    if !filters.is_empty() {
         command.arg("-vf").arg(filters.join(","));
     }
     command.arg(&output_file);
 
     if CONFIG.streamline.dry_run {
         println!("Would run command: {:?}", command);
-        return Ok(());
+        Ok(())
     } else {
         match command.output() {
             Ok(cmd_out) => {
-                handle_completed_file(&input_file, &output_file)?;
+                handle_completed_file(input_file, &output_file)?;
                 if !cmd_out.status.success() {
                     return Err(format!(
                         "Error running ffmpeg: {} -- {:?}",

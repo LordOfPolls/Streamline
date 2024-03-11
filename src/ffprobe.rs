@@ -1,7 +1,7 @@
 use std::process::Command;
 
 use crate::models::config::CONFIG;
-use serde_json;
+
 use std::fs::DirEntry;
 
 use crate::models::media::FFProbeOutput;

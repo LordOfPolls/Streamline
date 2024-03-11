@@ -5,7 +5,7 @@ use std::fs;
 use std::path::Path;
 use std::thread::available_parallelism;
 
-pub static CONFIG: Lazy<Config> = Lazy::new(|| load_config());
+pub static CONFIG: Lazy<Config> = Lazy::new(load_config);
 
 fn load_config() -> Config {
     let spinner = utils::create_spinner(false);
@@ -48,7 +48,7 @@ impl Config {
                 println!("Error: always_replace and replace_if_smaller cannot both be true");
                 failed = true;
             }
-            if self.streamline.output_directory != "" {
+            if !self.streamline.output_directory.is_empty() {
                 println!("Error: always_replace and output_directory cannot both be set");
                 failed = true;
             }
@@ -59,7 +59,7 @@ impl Config {
             failed = true;
         }
 
-        if self.streamline.temporary_suffix == "" {
+        if self.streamline.temporary_suffix.is_empty() {
             println!("Error: temporary_suffix cannot be empty");
             failed = true;
         }
@@ -83,7 +83,7 @@ impl Config {
             }
         }
 
-        return failed;
+        failed
     }
 
     pub fn get_threads(&self) -> u32 {

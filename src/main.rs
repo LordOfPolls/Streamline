@@ -150,13 +150,7 @@ fn check_files(files: Vec<DirEntry>) -> Vec<MediaFile> {
         let media_file = match info {
             Ok(info) => MediaFile { path: file, info },
             Err(e) => {
-                let error: String;
-                if CONFIG.streamline.debug {
-                    error = e;
-                } else {
-                    error = e.to_string();
-                }
-                println!("Error processing file: {}", error);
+                println!("Error processing file: {}", e);
                 continue;
             }
         };
@@ -172,12 +166,12 @@ fn check_files(files: Vec<DirEntry>) -> Vec<MediaFile> {
         ),
     );
 
-    return needs_processing;
+    needs_processing
 }
 
 fn sanity_check(path: &Path) {
     let spinner = utils::create_spinner(true);
-    spinner.set_message(format!("Sanity checking"));
+    spinner.set_message("Sanity checking".to_string());
 
     let mut failed = false;
 
@@ -242,22 +236,19 @@ fn collect_files_with_extensions(
             spinner.tick();
 
             if path.is_file() {
-                match path.extension() {
-                    Some(ext) => {
-                        if extensions.contains(&ext.to_string_lossy().into_owned()) {
-                            files.push(obj);
-                        }
+                if let Some(ext) = path.extension() {
+                    if extensions.contains(&ext.to_string_lossy().into_owned()) {
+                        files.push(obj);
                     }
-                    None => {}
                 }
             } else if recursive && path.is_dir() {
                 let sub_files = collect_files_with_extensions(
                     &path,
-                    &extensions,
+                    extensions,
                     recursive,
                     depth + 1,
                     max_depth,
-                    &spinner,
+                    spinner,
                 )?;
                 files.extend(sub_files);
             }
