@@ -14,11 +14,11 @@ git clone https://github.com/your-username/streamline.git
 
 Navigate to the project directory:
 
-cd streamline
+`cd streamline`
 
 Build the project:
 
-cargo build --release
+`cargo build --release`
 
 The compiled binary will be available in the target/release directory.
 
