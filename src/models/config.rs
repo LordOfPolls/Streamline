@@ -159,6 +159,7 @@ pub struct FFmpeg {
     pub ffprobe_path: String,
     pub threads: u32,
     pub threads_auto_behavior: String,
+    pub ffprobe_workers: u32,
     pub log_level: String,
 }
 #[derive(Debug, Deserialize)]

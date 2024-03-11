@@ -2,7 +2,6 @@ use crate::models::config::CONFIG;
 use crate::models::file::MediaFile;
 use crate::models::media::Stream;
 use crate::utils;
-use std::fs::DirEntry;
 use std::path::Path;
 use std::process::Command;
 
@@ -16,9 +15,8 @@ pub fn check_ffmpeg() -> Result<(), String> {
     }
 }
 
-pub fn get_output_path(input_file: &DirEntry) -> String {
+pub fn get_output_path(input_file: &Path) -> String {
     let mut working_path = input_file
-        .path()
         .with_extension(&CONFIG.streamline.output_extension)
         .to_str()
         .unwrap()
@@ -200,7 +198,7 @@ fn apply_subtitle_arguments(stream: &Stream, command: &mut Command, default_set:
 
 fn handle_completed_file(input_file: &MediaFile, output_file: &str) -> Result<(), String> {
     if CONFIG.streamline.always_replace {
-        match std::fs::rename(output_file, input_file.path.path()) {
+        match std::fs::rename(output_file, input_file.path.as_path()) {
             Ok(_) => Ok(()),
             Err(e) => Err(e.to_string()),
         }
@@ -208,7 +206,7 @@ fn handle_completed_file(input_file: &MediaFile, output_file: &str) -> Result<()
         let input_size = input_file.path.metadata().unwrap().len();
         let output_size = std::fs::metadata(output_file).unwrap().len();
         if output_size < input_size {
-            match std::fs::rename(output_file, input_file.path.path()) {
+            match std::fs::rename(output_file, input_file.path.as_path()) {
                 Ok(_) => Ok(()),
                 Err(e) => Err(e.to_string()),
             }
@@ -245,7 +243,7 @@ pub fn process_file(input_file: &MediaFile) -> Result<(), String> {
     let mut command = Command::new(&CONFIG.ffmpeg.ffmpeg_path);
     let mut filters = Vec::new();
 
-    command.arg("-i").arg(&input_file.path.path());
+    command.arg("-i").arg(input_file.path.as_path());
     command.arg("-xerror");
     command.arg("-v").arg("error");
     command.arg("-f").arg(&CONFIG.streamline.output_format);

@@ -35,9 +35,10 @@ fn main() {
     let to_process = check_files(files);
 
     let processing_pb = utils::create_progress_bar(to_process.len() as u64, true, 500);
+
     processing_pb.set_message("Processing files...");
     for file in to_process {
-        processing_pb.set_message(format!("Processing: {}", file.path.path().display()));
+        processing_pb.set_message(format!("Processing: {}", file.path.as_path().display()));
         processing_pb.tick();
         match ffmpeg::process_file(&file) {
             Ok(_) => processing_pb.inc(1),
@@ -135,28 +136,21 @@ fn _check_file(file: MediaFile, to_process: &mut Vec<MediaFile>) {
 }
 
 fn check_files(files: Vec<DirEntry>) -> Vec<MediaFile> {
-    let pb = utils::create_progress_bar(files.len() as u64, true, 500);
-    pb.set_message("Analyzing files...");
     let mut needs_processing = Vec::new();
 
     let total_files = files.len();
 
-    for file in files {
+    let processed_files: Vec<MediaFile> = ffprobe::bulk_get_file_info(files);
+
+    let pb = utils::create_progress_bar(processed_files.len() as u64, true, 500);
+    pb.set_message("Analyzing files...");
+    for file in processed_files {
         pb.inc(1);
         pb.tick();
 
-        let info = ffprobe::get_file_info(&file);
-
-        let media_file = match info {
-            Ok(info) => MediaFile { path: file, info },
-            Err(e) => {
-                println!("Error processing file: {}", e);
-                continue;
-            }
-        };
-
-        _check_file(media_file, &mut needs_processing);
+        _check_file(file, &mut needs_processing);
     }
+
     utils::set_pb_finish_message(
         &pb,
         format!(
@@ -178,7 +172,11 @@ fn sanity_check(path: &Path) {
     match fs::read_dir(path) {
         Ok(_) => spinner.tick(),
         Err(e) => {
-            println!("Error reading directory: {}", e);
+            println!(
+                "Error reading directory ({}): {}",
+                path.to_str().unwrap_or(""),
+                e
+            );
             failed = true;
         }
     }

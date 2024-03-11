@@ -1,7 +1,7 @@
 use crate::models::media::FFProbeOutput;
-use std::fs::DirEntry;
+use std::path::PathBuf;
 
 pub struct MediaFile {
-    pub path: DirEntry,
+    pub path: PathBuf,
     pub info: FFProbeOutput,
 }
